@@ -82,26 +82,34 @@ void *playerOne() {
     printf("[PLAYER_ONE] Started\n");
 
     for (int i = 0; i < 26; i++) {
+        // Locks the mutex
         pthread_mutex_lock(&revealMutex);
         printf("[PLAYER_ONE] Requested lock on reveal mutex\n");
 
         if (totalCardNumber % 2 != 0) {
+            // If above condition is met (totalCardNumber is uneven), the below method
+            // blocks this thread and unlocks the mutex, until another thread sends a signal
             pthread_cond_wait(&revealCond, &revealMutex);
         }
         totalCardNumber++;
 
+        // The card is revealed and handled
         printf("[PLAYER_ONE] Signal received, revealing: %s\n", firstHalf[i]);
 
         //TODO: Lav filehåndtering og regler her
 
+        // A signal to a potentially waiting player two is sent
         printf("[PLAYER_ONE] Signaling (unblocking) player two\n");
         pthread_cond_signal(&revealCond);
 
+        // Unlocking the mutex allows for the other player to lock the mutex again and continue (wake up)
         printf("[PLAYER_ONE] Unlocking reveal mutex\n");
         pthread_mutex_unlock(&revealMutex);
     }
+    return NULL;
 }
 
+// This function works in the same way as described in the playerOne function
 void *playerTwo() {
     printf("[PLAYER_TWO] Started\n");
 
@@ -124,4 +132,5 @@ void *playerTwo() {
         printf("[PLAYER_TWO] Unlocking reveal mutex\n");
         pthread_mutex_unlock(&revealMutex);
     }
+    return NULL;
 }
