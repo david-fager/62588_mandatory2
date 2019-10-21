@@ -6,3 +6,4 @@ This file contains the sources used to make this c-program.
 
 (used: 21/10/2019) https://www.geeksforgeeks.org/shuffle-a-deck-of-cards-3/
 (used: 21/10/2019) https://freethreads.net/2012/05/05/two-indepedent-threads-to-print-even-and-odd-numbers-in-c/
+(used: 22/10/2019) https://www.tutorialspoint.com/c_standard_library/c_function_fopen.htm
