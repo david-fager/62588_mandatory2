@@ -2,9 +2,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <pthread.h>
+#include <unistd.h>
 
 // Functions
 void shuffleDeck();
+void *playerOne();
+void *playerTwo();
 
 // Initializes the deck
 char deck[52][20] = {
@@ -17,13 +21,34 @@ char deck[52][20] = {
         "2 (club)", "3 (club)", "4 (club)", "5 (club)", "6 (club)", "7 (club)", "8 (club)",
         "9 (club)", "10 (club)", "jack (club)", "queen (club)", "king (club)", "ace (club)"
 };
+char firstHalf[26][20];
+char secondHalf[26][20];
 
 int main() {
 
-    printf("[INFO] Shuffeling card deck\n");
+    printf("[MAIN] Shuffeling card deck\n");
     shuffleDeck();
 
+    printf("[MAIN] Splitting deck into two halves\n");
+    int index = 0;
+    for(int i = 0; i < 52; i++) {
+        if (i < 26) {
+            strcpy(firstHalf[i], deck[i]);
+        } else {
+            strcpy(secondHalf[index++], deck[i]);
+        }
+    }
 
+    pthread_t tid1, tid2;
+    printf("[MAIN] Creating thread 1 (player one)\n");
+    pthread_create(&tid1, NULL, playerOne, NULL);
+    printf("[MAIN] Creating thread 2 (player two)\n");
+    pthread_create(&tid2, NULL, playerTwo, NULL);
+
+    pthread_join(tid1, NULL);
+    printf("[MAIN] Thread 1 (player one) finished\n");
+    pthread_join(tid2, NULL);
+    printf("[MAIN] Thread 2 (player two) finished\n");
 
     /*
     for(int i = 0; i < 52; i++) {
@@ -47,5 +72,26 @@ void shuffleDeck() {
         strcpy(temp, deck[i]);
         strcpy(deck[i], deck[cardNumber]);
         strcpy(deck[cardNumber], temp);
+    }
+}
+
+void *playerOne() {
+    printf("[PLAYER_ONE] Started\n");
+
+    // Temp thread sleeper
+    int a = 0;
+    for(int j = 0; j < 50000; j++) {
+        a++;
+    }
+
+    for (int i = 0; i < 26; i++) {
+        printf("[PLAYER_ONE] Flipped the card: %s\n", firstHalf[i]);
+    }
+}
+
+void *playerTwo() {
+    printf("[PLAYER_TWO] Started\n");
+    for(int i = 0; i < 26; i++) {
+        printf("[PLAYER_TWO] Flipped the card: %s\n", secondHalf[i]);
     }
 }

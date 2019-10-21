@@ -1,3 +1,9 @@
-Here follows the sources used to make this program.
+> 62588 Operativsystemer
+> Mandatory 2
+> 23/10/2019
 
-(used: 21-10-2019) https://www.geeksforgeeks.org/shuffle-a-deck-of-cards-3/
+This file contains the sources used to make this c-program.
+
+(used: 21/10/2019) https://www.geeksforgeeks.org/shuffle-a-deck-of-cards-3/
+
+(used: ) https://freethreads.net/2012/05/05/two-indepedent-threads-to-print-even-and-odd-numbers-in-c/
