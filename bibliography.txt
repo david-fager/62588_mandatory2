@@ -1,0 +1,3 @@
+Here follows the sources used to make this program.
+
+(used: 21-10-2019) https://www.geeksforgeeks.org/shuffle-a-deck-of-cards-3/
