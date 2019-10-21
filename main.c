@@ -23,6 +23,9 @@ char deck[52][20] = {
 };
 char firstHalf[26][20];
 char secondHalf[26][20];
+pthread_mutex_t revealMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t revealCond = PTHREAD_COND_INITIALIZER;
+int totalCardNumber = 1;
 
 int main() {
 
@@ -78,20 +81,47 @@ void shuffleDeck() {
 void *playerOne() {
     printf("[PLAYER_ONE] Started\n");
 
-    // Temp thread sleeper
-    int a = 0;
-    for(int j = 0; j < 50000; j++) {
-        a++;
-    }
-
     for (int i = 0; i < 26; i++) {
-        printf("[PLAYER_ONE] Flipped the card: %s\n", firstHalf[i]);
+        pthread_mutex_lock(&revealMutex);
+        printf("[PLAYER_ONE] Requested lock on reveal mutex\n");
+
+        if (totalCardNumber % 2 != 0) {
+            pthread_cond_wait(&revealCond, &revealMutex);
+        }
+        totalCardNumber++;
+
+        printf("[PLAYER_ONE] Signal received, revealing: %s\n", firstHalf[i]);
+
+        //TODO: Lav filehåndtering og regler her
+
+        printf("[PLAYER_ONE] Signaling (unblocking) player two\n");
+        pthread_cond_signal(&revealCond);
+
+        printf("[PLAYER_ONE] Unlocking reveal mutex\n");
+        pthread_mutex_unlock(&revealMutex);
     }
 }
 
 void *playerTwo() {
     printf("[PLAYER_TWO] Started\n");
-    for(int i = 0; i < 26; i++) {
-        printf("[PLAYER_TWO] Flipped the card: %s\n", secondHalf[i]);
+
+    for (int i = 0; i < 26; i++) {
+        pthread_mutex_lock(&revealMutex);
+        printf("[PLAYER_TWO] Requested lock on reveal mutex\n");
+
+        if (totalCardNumber % 2 == 0) {
+            pthread_cond_wait(&revealCond, &revealMutex);
+        }
+        totalCardNumber++;
+
+        printf("[PLAYER_TWO] Signal received, revealing: %s\n", secondHalf[i]);
+
+        //TODO: Lav filehåndtering og regler her
+
+        printf("[PLAYER_TWO] Signaling (unblocking) player one\n");
+        pthread_cond_signal(&revealCond);
+
+        printf("[PLAYER_TWO] Unlocking reveal mutex\n");
+        pthread_mutex_unlock(&revealMutex);
     }
 }
