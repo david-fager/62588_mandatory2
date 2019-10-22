@@ -11,7 +11,7 @@ void *playerOne();
 void *playerTwo();
 
 // Global variables
-char deck[52][20] = {
+char deck[52][100] = {
         "2 (diamond)", "3 (diamond)", "4 (diamond)", "5 (diamond)", "6 (diamond)", "7 (diamond)", "8 (diamond)",
         "9 (diamond)", "10 (diamond)", "jack (diamond)", "queen (diamond)", "king (diamond)", "ace (diamond)",
         "2 (heart)", "3 (heart)", "4 (heart)", "5 (heart)", "6 (heart)", "7 (heart)", "8 (heart)",
@@ -21,8 +21,8 @@ char deck[52][20] = {
         "2 (club)", "3 (club)", "4 (club)", "5 (club)", "6 (club)", "7 (club)", "8 (club)",
         "9 (club)", "10 (club)", "jack (club)", "queen (club)", "king (club)", "ace (club)"
 };
-char firstHalf[26][20];
-char secondHalf[26][20];
+char firstHalf[26][100];
+char secondHalf[26][100];
 pthread_mutex_t revealMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t fileMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t revealCond = PTHREAD_COND_INITIALIZER;
@@ -74,7 +74,7 @@ int main() {
 
 // Shuffles the sorted card deck after its initialization
 void shuffleDeck() {
-    char temp[20];
+    char temp[100];
 
     // Specifies a randomizing seed, so rand() functions properly
     srand(time(NULL));
@@ -90,11 +90,14 @@ void shuffleDeck() {
 
 void *playerOne() {
     printf("[PLAYER_ONE] Started\n");
+    usleep(250000);
+    fpos_t filePos;
 
     for (int i = 0; i < 26; i++) {
+
         // Locks the mutex
         pthread_mutex_lock(&revealMutex);
-        printf("\n[PLAYER_ONE] Requested lock on reveal mutex\n");
+        printf("[PLAYER_ONE] Requested lock on reveal mutex\n");
 
         if (totalCardNumber % 2 == 0) {
             // If above condition is met (totalCardNumber is uneven), the below method
@@ -102,6 +105,44 @@ void *playerOne() {
             pthread_cond_wait(&revealCond, &revealMutex);
         }
         totalCardNumber++;
+        printf("\nROUND %d HAS BEGUN\n", i + 1);
+
+        // If the game is further than the 1. round, the previous round's cards
+        // are looked at and given to the opponent if it is a face card or an ace.
+        if (i > 1) {
+            fPtr1 = fopen("playerOneHand.txt", "r+");
+            fPtr2 = fopen("playerTwoHand.txt", "a");
+            char ownHand[100];
+            char savedHand[100];
+            fsetpos(fPtr1, &filePos);
+            fgets(ownHand, 100, fPtr1);
+            strcpy(savedHand, ownHand);
+
+            //char lost[50], gained[50];
+            int looseCard = 0;
+            char * token = strtok(ownHand, " ");
+            while (token != NULL) {
+                if (strcmp(token, "jack") == 0 || strcmp(token, "queen") == 0 || strcmp(token, "king") == 0 || strcmp(token, "ace") == 0) {
+                    looseCard = 1;
+                }
+                if (strcmp(token, "-") == 0) {
+                    looseCard = 0;
+                }
+                token = strtok(NULL, " ");
+            }
+
+            if (looseCard) {
+                fprintf(fPtr1, " - LOST TO OPPONENT");
+                strcpy(savedHand, strtok(savedHand, "\n"));
+                strcat(savedHand, " - GAINED FROM OPPONENT\n");
+                fprintf(fPtr2, "%s", savedHand);
+            }
+
+            fprintf(fPtr1, "\n");
+
+            fclose(fPtr1);
+            fclose(fPtr2);
+        }
 
         // The card is revealed and handled in the file representing their hand
         printf("[PLAYER_ONE] Signal received, revealing: %s\n", firstHalf[i]);
@@ -109,13 +150,17 @@ void *playerOne() {
         printf("[PLAYER_ONE] Dealing with file(s)\n");
         fPtr1 = fopen("playerOneHand.txt", "a+");
         if (fPtr1 == NULL) {
-            printf("[PLAYER_ONE] FILE ERROR OCCURED");
+            printf("[PLAYER_ONE] FILE ERROR OCCURED\n");
             fflush(stdout);
             exit(-1);
         }
-        fprintf(fPtr1, "%s\n", firstHalf[i]);
+        // Get the current position of curser in file and writes the revealed card to the file
+        fgetpos(fPtr1, &filePos);
+        fprintf(fPtr1, "%d. %s", i + 1, firstHalf[i]);
+        if (i == 0) {
+            fprintf(fPtr1, "\n");
+        }
         fclose(fPtr1);
-        //TODO: Lav filehåndtering og regler her
 
         // A signal to a potentially waiting player two is sent
         printf("[PLAYER_ONE] Signaling (unblocking) player two\n");
@@ -131,6 +176,8 @@ void *playerOne() {
 // This function works in the same way as described in the playerOne function
 void *playerTwo() {
     printf("[PLAYER_TWO] Started\n");
+    usleep(250000);
+    fpos_t filePos;
 
     for (int i = 0; i < 26; i++) {
         pthread_mutex_lock(&revealMutex);
@@ -141,19 +188,51 @@ void *playerTwo() {
         }
         totalCardNumber++;
 
+        if (i > 1) {
+            fPtr1 = fopen("playerOneHand.txt", "a");
+            fPtr2 = fopen("playerTwoHand.txt", "r+");
+            char ownHand[100];
+            char savedHand[100];
+            fsetpos(fPtr2, &filePos);
+            fgets(ownHand, 100, fPtr2);
+            strcpy(savedHand, ownHand);
+
+            int looseCard = 0;
+            char * token = strtok(ownHand, " ");
+            while (token != NULL) {
+                if (strcmp(token, "jack") == 0 || strcmp(token, "queen") == 0 || strcmp(token, "king") == 0 || strcmp(token, "ace") == 0) {
+                    looseCard = 1;
+                }
+                if (strcmp(token, "-") == 0) {
+                    looseCard = 0;
+                }
+                token = strtok(NULL, " ");
+            }
+
+            if (looseCard) {
+                printf("ROUND %d THIS FUCKING THING IS %s\n", i + 1, savedHand);
+                fsetpos(fPtr2, &filePos);
+                strcpy(savedHand, strtok(savedHand, "\n"));
+                strcat(savedHand, " - LOST TO OPPONENT");
+                fprintf(fPtr2, "%s\n", savedHand);
+            }
+
+            fclose(fPtr1);
+            fclose(fPtr2);
+        }
+
         printf("[PLAYER_TWO] Signal received, revealing: %s\n", secondHalf[i]);
-        sleep(1);
 
         printf("[PLAYER_TWO] Dealing with file(s)\n");
         fPtr2 = fopen("playerTwoHand.txt", "a+");
         if (fPtr2 == NULL) {
-            printf("[PLAYER_TWO] FILE ERROR OCCURED");
+            printf("[PLAYER_TWO] FILE ERROR OCCURED\n");
             fflush(stdout);
             exit(-1);
         }
-        fprintf(fPtr2, "%s\n", secondHalf[i]);
+        fgetpos(fPtr2, &filePos);
+        fprintf(fPtr2, "%d. %s\n", i + 1, secondHalf[i]);
         fclose(fPtr2);
-        //TODO: Lav filehåndtering og regler her
 
         printf("[PLAYER_TWO] Signaling (unblocking) player one\n");
         pthread_cond_signal(&revealCond);
