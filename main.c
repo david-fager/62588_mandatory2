@@ -75,13 +75,13 @@ int main() {
     fptr = fopen("BattleLog.txt", "a");
     if (playerOnePoints > playerTwoPoints) {
         fprintf(fptr, "\nPLAYER ONE WON WITH %d POINTS OVER %d\n", playerOnePoints, playerTwoPoints);
-        printf("GAME ENDED, PLAYER ONE WON WITH %d POINTS OVER %d\n", playerOnePoints, playerTwoPoints);
+        printf("\nGAME ENDED, PLAYER ONE WON WITH %d POINTS OVER %d\nSEE THE BATTLELOG.TXT FILE\n", playerOnePoints, playerTwoPoints);
     } else if (playerTwoPoints > playerOnePoints) {
         fprintf(fptr, "\nPLAYER TWO WON WITH %d POINTS OVER %d\n", playerTwoPoints, playerOnePoints);
-        printf("GAME ENDED, PLAYER TWO WON WITH %d POINTS OVER %d\n", playerTwoPoints, playerOnePoints);
+        printf("\nGAME ENDED, PLAYER TWO WON WITH %d POINTS OVER %d\nSEE THE BATTLELOG.TXT FILE\n", playerTwoPoints, playerOnePoints);
     } else {
         fprintf(fptr, "\nIT IS A TIE AT %d / %d\n", playerTwoPoints, playerOnePoints);
-        printf("GAME ENDED, IT IS A TIE AT %d / %d\n", playerOnePoints, playerTwoPoints);
+        printf("\nGAME ENDED, IT IS A TIE AT %d / %d\nSEE THE BATTLELOG.TXT FILE\n", playerOnePoints, playerTwoPoints);
     }
 
     return 0;
