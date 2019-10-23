@@ -24,7 +24,6 @@ char deck[52][100] = {
 char firstHalf[26][100];
 char secondHalf[26][100];
 pthread_mutex_t revealMutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t fileMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t revealCond = PTHREAD_COND_INITIALIZER;
 int totalCardNumber = 1;
 FILE *fptr;
@@ -37,14 +36,14 @@ int main() {
     fptr = fopen("BattleLog.txt", "w");
     fprintf(fptr, "ROUND. PLAYER ONE / PLAYER TWO\n");
     if (fptr == NULL) {
-        printf("[MAIN] FILE ERROR OCCURED");
+        printf("[MAIN] FILE ERROR OCCURRED");
         fflush(stdout);
         exit(-1);
     }
     fclose(fptr);
 
-    // Shuffeling the deck
-    printf("[MAIN] Shuffeling card deck\n");
+    // Shuffling the deck
+    printf("[MAIN] Shuffling card deck\n");
     shuffleDeck();
 
     // Splitting deck into two halves
@@ -75,13 +74,13 @@ int main() {
     fptr = fopen("BattleLog.txt", "a");
     if (playerOnePoints > playerTwoPoints) {
         fprintf(fptr, "\nPLAYER ONE WON WITH %d POINTS OVER %d\n", playerOnePoints, playerTwoPoints);
-        printf("\nGAME ENDED, PLAYER ONE WON WITH %d POINTS OVER %d\nSEE THE BATTLELOG.TXT FILE\n", playerOnePoints, playerTwoPoints);
+        printf("\n[MAIN] GAME ENDED, PLAYER ONE WON WITH %d POINTS OVER %d\n[MAIN] SEE THE BATTLELOG.TXT FILE\n", playerOnePoints, playerTwoPoints);
     } else if (playerTwoPoints > playerOnePoints) {
         fprintf(fptr, "\nPLAYER TWO WON WITH %d POINTS OVER %d\n", playerTwoPoints, playerOnePoints);
-        printf("\nGAME ENDED, PLAYER TWO WON WITH %d POINTS OVER %d\nSEE THE BATTLELOG.TXT FILE\n", playerTwoPoints, playerOnePoints);
+        printf("\n[MAIN] GAME ENDED, PLAYER TWO WON WITH %d POINTS OVER %d\n[MAIN] SEE THE BATTLELOG.TXT FILE\n", playerTwoPoints, playerOnePoints);
     } else {
         fprintf(fptr, "\nIT IS A TIE AT %d / %d\n", playerTwoPoints, playerOnePoints);
-        printf("\nGAME ENDED, IT IS A TIE AT %d / %d\nSEE THE BATTLELOG.TXT FILE\n", playerOnePoints, playerTwoPoints);
+        printf("\n[MAIN] GAME ENDED, IT IS A TIE AT %d / %d\n[MAIN] SEE THE BATTLELOG.TXT FILE\n", playerOnePoints, playerTwoPoints);
     }
 
     return 0;
@@ -105,7 +104,6 @@ void shuffleDeck() {
 
 void *playerOne() {
     printf("[PLAYER_ONE] Started\n");
-    usleep(250000);
 
     for (int i = 0; i < 26; i++) {
 
@@ -148,7 +146,6 @@ void *playerOne() {
 
 void *playerTwo() {
     printf("[PLAYER_TWO] Started\n");
-    usleep(250000);
 
     for (int i = 0; i < 26; i++) {
         pthread_mutex_lock(&revealMutex);
@@ -207,7 +204,7 @@ void *playerTwo() {
                     p2CardValue = atoi(strtok(secondHalf[i], " "));
                 }
             }
-            // Gets next in tokenization
+            // Gets next in tokenizing
             tokenizedHand = strtok(NULL, " ");
         }
 
