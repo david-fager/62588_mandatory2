@@ -34,7 +34,7 @@ int playerOnePoints = 0, playerTwoPoints = 0;
 int main() {
 
     // Prepares the file, creating if non-existent, emptying if existent
-    fptr = fopen("GameView.txt", "w");
+    fptr = fopen("BattleLog.txt", "w");
     fprintf(fptr, "ROUND. PLAYER ONE / PLAYER TWO\n");
     if (fptr == NULL) {
         printf("[MAIN] FILE ERROR OCCURED");
@@ -72,7 +72,7 @@ int main() {
     printf("[MAIN] Thread 2 (player two) finished\n");
 
     // Writes to stdout and file who won the game
-    fptr = fopen("GameView.txt", "a");
+    fptr = fopen("BattleLog.txt", "a");
     if (playerOnePoints > playerTwoPoints) {
         fprintf(fptr, "\nPLAYER ONE WON WITH %d POINTS OVER %d\n", playerOnePoints, playerTwoPoints);
         printf("GAME ENDED, PLAYER ONE WON WITH %d POINTS OVER %d\n", playerOnePoints, playerTwoPoints);
@@ -124,7 +124,7 @@ void *playerOne() {
         // The card is revealed and handled in the file
         printf("[PLAYER_ONE] Signal received, revealing: %s\n", firstHalf[i]);
         printf("[PLAYER_ONE] Dealing with file\n");
-        fptr = fopen("GameView.txt", "a");
+        fptr = fopen("BattleLog.txt", "a");
         if (fptr == NULL) {
             printf("[PLAYER_ONE] FILE ERROR OCCURED\n");
             fflush(stdout);
@@ -170,7 +170,7 @@ void *playerTwo() {
         char playerOneChar[50];
         // opens file and sets the position to start of player one's revealed card,
         // then reads the card and tokenizes it, to see its value
-        fptr = fopen("GameView.txt", "r+");
+        fptr = fopen("BattleLog.txt", "r+");
         fsetpos(fptr, &fpos);
         fgets(tempHand, 50, fptr);
         strcpy(fullHand, tempHand);
