@@ -53,3 +53,7 @@ The need for multithreading & mutual exclusion:
 # is needed, and signals are required to ensure this is done in the right order.
 
 Testing:
+# The program was tested by removing (commenting out) the mutual exclusion. The program
+# did once out of a total of five tests, function properly with regards to printing to
+# the battlelog. However the remaining four times, the battlelog had missing/wrong
+# formatting, making it difficult to judge if the end result was trustworthy.
