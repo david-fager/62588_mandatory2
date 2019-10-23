@@ -27,19 +27,21 @@ pthread_mutex_t revealMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t fileMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t revealCond = PTHREAD_COND_INITIALIZER;
 int totalCardNumber = 1;
-FILE *fPtr1, *fPtr2;
+FILE *fptr;
+fpos_t fpos;
+int playerOnePoints = 0, playerTwoPoints = 0;
 
 int main() {
-    // Creates/empties the file representing the player's hands
-    fPtr1 = fopen("playerOneHand.txt", "w");
-    fPtr2 = fopen("playerTwoHand.txt", "w");
-    if (fPtr1 == NULL || fPtr2 == NULL) {
+
+    // Prepares the file, creating if non-existent, emptying if existent
+    fptr = fopen("GameView.txt", "w");
+    fprintf(fptr, "ROUND. PLAYER ONE / PLAYER TWO\n");
+    if (fptr == NULL) {
         printf("[MAIN] FILE ERROR OCCURED");
         fflush(stdout);
         exit(-1);
     }
-    fclose(fPtr1);
-    fclose(fPtr2);
+    fclose(fptr);
 
     // Shuffeling the deck
     printf("[MAIN] Shuffeling card deck\n");
@@ -69,6 +71,19 @@ int main() {
     pthread_join(tid2, NULL);
     printf("[MAIN] Thread 2 (player two) finished\n");
 
+    // Writes to stdout and file who won the game
+    fptr = fopen("GameView.txt", "a");
+    if (playerOnePoints > playerTwoPoints) {
+        fprintf(fptr, "\nPLAYER ONE WON WITH %d POINTS OVER %d\n", playerOnePoints, playerTwoPoints);
+        printf("GAME ENDED, PLAYER ONE WON WITH %d POINTS OVER %d\n", playerOnePoints, playerTwoPoints);
+    } else if (playerTwoPoints > playerOnePoints) {
+        fprintf(fptr, "\nPLAYER TWO WON WITH %d POINTS OVER %d\n", playerTwoPoints, playerOnePoints);
+        printf("GAME ENDED, PLAYER TWO WON WITH %d POINTS OVER %d\n", playerTwoPoints, playerOnePoints);
+    } else {
+        fprintf(fptr, "\nIT IS A TIE AT %d / %d\n", playerTwoPoints, playerOnePoints);
+        printf("GAME ENDED, IT IS A TIE AT %d / %d\n", playerOnePoints, playerTwoPoints);
+    }
+
     return 0;
 }
 
@@ -91,7 +106,6 @@ void shuffleDeck() {
 void *playerOne() {
     printf("[PLAYER_ONE] Started\n");
     usleep(250000);
-    fpos_t filePos;
 
     for (int i = 0; i < 26; i++) {
 
@@ -107,60 +121,19 @@ void *playerOne() {
         totalCardNumber++;
         printf("\nROUND %d HAS BEGUN\n", i + 1);
 
-        // If the game is further than the 1. round, the previous round's cards
-        // are looked at and given to the opponent if it is a face card or an ace.
-        if (i > 1) {
-            fPtr1 = fopen("playerOneHand.txt", "r+");
-            fPtr2 = fopen("playerTwoHand.txt", "a");
-            char ownHand[100];
-            char savedHand[100];
-            fsetpos(fPtr1, &filePos);
-            fgets(ownHand, 100, fPtr1);
-            strcpy(savedHand, ownHand);
-
-            //char lost[50], gained[50];
-            int looseCard = 0;
-            char * token = strtok(ownHand, " ");
-            while (token != NULL) {
-                if (strcmp(token, "jack") == 0 || strcmp(token, "queen") == 0 || strcmp(token, "king") == 0 || strcmp(token, "ace") == 0) {
-                    looseCard = 1;
-                }
-                if (strcmp(token, "-") == 0) {
-                    looseCard = 0;
-                }
-                token = strtok(NULL, " ");
-            }
-
-            if (looseCard) {
-                fprintf(fPtr1, " - LOST TO OPPONENT");
-                strcpy(savedHand, strtok(savedHand, "\n"));
-                strcat(savedHand, " - GAINED FROM OPPONENT\n");
-                fprintf(fPtr2, "%s", savedHand);
-            }
-
-            fprintf(fPtr1, "\n");
-
-            fclose(fPtr1);
-            fclose(fPtr2);
-        }
-
-        // The card is revealed and handled in the file representing their hand
+        // The card is revealed and handled in the file
         printf("[PLAYER_ONE] Signal received, revealing: %s\n", firstHalf[i]);
-
-        printf("[PLAYER_ONE] Dealing with file(s)\n");
-        fPtr1 = fopen("playerOneHand.txt", "a+");
-        if (fPtr1 == NULL) {
+        printf("[PLAYER_ONE] Dealing with file\n");
+        fptr = fopen("GameView.txt", "a");
+        if (fptr == NULL) {
             printf("[PLAYER_ONE] FILE ERROR OCCURED\n");
             fflush(stdout);
             exit(-1);
         }
-        // Get the current position of curser in file and writes the revealed card to the file
-        fgetpos(fPtr1, &filePos);
-        fprintf(fPtr1, "%d. %s", i + 1, firstHalf[i]);
-        if (i == 0) {
-            fprintf(fPtr1, "\n");
-        }
-        fclose(fPtr1);
+        // Get the current position of curser in file and write the revealed card to the file
+        fgetpos(fptr, &fpos);
+        fprintf(fptr, "%d. %s\n", i + 1, firstHalf[i]);
+        fclose(fptr);
 
         // A signal to a potentially waiting player two is sent
         printf("[PLAYER_ONE] Signaling (unblocking) player two\n");
@@ -173,11 +146,9 @@ void *playerOne() {
     return NULL;
 }
 
-// This function works in the same way as described in the playerOne function
 void *playerTwo() {
     printf("[PLAYER_TWO] Started\n");
     usleep(250000);
-    fpos_t lineStartPos, lineEndPos;
 
     for (int i = 0; i < 26; i++) {
         pthread_mutex_lock(&revealMutex);
@@ -188,62 +159,90 @@ void *playerTwo() {
         }
         totalCardNumber++;
 
-        if (i > 1) {
-            fPtr1 = fopen("playerOneHand.txt", "a");
-            fPtr2 = fopen("playerTwoHand.txt", "r+");
-            char ownHand[100];
-            char savedHand[100];
-            fsetpos(fPtr2, &lineStartPos);
-            fgets(ownHand, 100, fPtr2);
-            strcpy(savedHand, ownHand);
-
-            int looseCard = 0;
-            char * token = strtok(ownHand, " ");
-            while (token != NULL) {
-                if (strcmp(token, "jack") == 0 || strcmp(token, "queen") == 0 || strcmp(token, "king") == 0 || strcmp(token, "ace") == 0) {
-                    looseCard = 1;
-                }
-                if (strcmp(token, "-") == 0) {
-                    looseCard = 0;
-                }
-                token = strtok(NULL, " ");
-            }
-
-            if (looseCard) {
-                char hand[50];
-                strcpy(hand, savedHand);
-                strcpy(hand, strtok(savedHand, "\n"));
-                strcat(hand, " - GAINED FROM OPPONENT");
-                fprintf(fPtr1, "\n%s", hand);
-
-                fsetpos(fPtr2, &lineEndPos);
-                char filesave[50];
-                fgets(filesave, 50, fPtr2);
-
-                fsetpos(fPtr2, &lineStartPos);
-                strcpy(savedHand, strtok(savedHand, "\n"));
-                strcat(savedHand, " - LOST TO OPPONENT");
-                fprintf(fPtr2, "%s\n", savedHand);
-                fprintf(fPtr2, "%s", filesave);
-            }
-
-            fclose(fPtr1);
-            fclose(fPtr2);
-        }
-
+        // Card revealed and copied into savedhand
         printf("[PLAYER_TWO] Signal received, revealing: %s\n", secondHalf[i]);
+        char savedHand[50];
+        strcpy(savedHand, secondHalf[i]);
 
-        printf("[PLAYER_TWO] Dealing with file(s)\n");
-        fPtr2 = fopen("playerTwoHand.txt", "a+");
-        if (fPtr2 == NULL) {
-            printf("[PLAYER_TWO] FILE ERROR OCCURED\n");
-            fflush(stdout);
-            exit(-1);
+        char tempHand[50];
+        char fullHand[50];
+        char * tokenizedHand;
+        char playerOneChar[50];
+        // opens file and sets the position to start of player one's revealed card,
+        // then reads the card and tokenizes it, to see its value
+        fptr = fopen("GameView.txt", "r+");
+        fsetpos(fptr, &fpos);
+        fgets(tempHand, 50, fptr);
+        strcpy(fullHand, tempHand);
+        strtok(fullHand, "\n");
+        tokenizedHand = strtok(tempHand, " ");
+
+        // The actual tokenizing and value assignment
+        int index = 0;
+        int p1CardValue = 0, p2CardValue = 0;
+        while (tokenizedHand != NULL) {
+            if (index++ == 1) {
+                strcpy(playerOneChar, tokenizedHand);
+                if (strcmp(tokenizedHand, "jack") == 0) {
+                    p1CardValue = 11;
+                } else if (strcmp(tokenizedHand, "queen") == 0) {
+                    p1CardValue = 12;
+                } else if (strcmp(tokenizedHand, "king") == 0) {
+                    p1CardValue = 13;
+                } else if (strcmp(tokenizedHand, "ace") == 0) {
+                    p1CardValue = 14;
+                } else {
+                    // Atoi gets the int value from the pointer
+                    p1CardValue = atoi(tokenizedHand);
+                }
+                if (strcmp(strtok(secondHalf[i], " "), "jack") == 0) {
+                    p2CardValue = 11;
+                } else if (strcmp(strtok(secondHalf[i], " "), "queen") == 0) {
+                    p2CardValue = 12;
+                } else if (strcmp(strtok(secondHalf[i], " "), "king") == 0) {
+                    p2CardValue = 13;
+                } else if (strcmp(strtok(secondHalf[i], " "), "ace") == 0) {
+                    p2CardValue = 14;
+                } else {
+                    p2CardValue = atoi(strtok(secondHalf[i], " "));
+                }
+            }
+            // Gets next in tokenization
+            tokenizedHand = strtok(NULL, " ");
         }
-        fgetpos(fPtr2, &lineStartPos);
-        fprintf(fPtr2, "%d. %s\n", i + 1, secondHalf[i]);
-        fgetpos(fPtr2, &lineEndPos);
-        fclose(fPtr2);
+
+        // Start on string handling, fullhand is becoming: "[player one's card] / [player two's card]"
+        fsetpos(fptr, &fpos);
+        strcat(fullHand, " / ");
+        strcat(fullHand, savedHand);
+
+        // Depending on which player has the higher card value, it prepares
+        // the string going into the file and increments the player's amount of points
+        if (p1CardValue > p2CardValue) {
+            strcat(fullHand, " - ");
+            strcat(fullHand, playerOneChar);
+            strcat(fullHand, " greater than ");
+            strcat(fullHand, strtok(secondHalf[i], " "));
+            strcat(fullHand, ", 1 point to player one");
+            playerOnePoints++;
+            printf("[INFO] PLAYER ONE GOT THE POINT\n");
+        } else if (p2CardValue > p1CardValue) {
+            strcat(fullHand, " - ");
+            strcat(fullHand, strtok(secondHalf[i], " "));
+            strcat(fullHand, " greater than ");
+            strcat(fullHand, playerOneChar);
+            strcat(fullHand, ", 1 point to player two");
+            playerTwoPoints++;
+            printf("[INFO] PLAYER TWO GOT THE POINT\n");
+        } else {
+            strcat(fullHand, " - cards of same value, tied");
+            printf("[INFO] PLAYERS HAD SAME CARD, NO POINTS\n");
+        }
+
+        // The full string is printed to the file.
+        // String is along: "[player one's card] / [player two's card] - [who got the point]"
+        fprintf(fptr, "%s\n", fullHand);
+        fclose(fptr);
 
         printf("[PLAYER_TWO] Signaling (unblocking) player one\n");
         pthread_cond_signal(&revealCond);
