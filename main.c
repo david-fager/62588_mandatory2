@@ -177,7 +177,7 @@ void *playerOne() {
 void *playerTwo() {
     printf("[PLAYER_TWO] Started\n");
     usleep(250000);
-    fpos_t filePos;
+    fpos_t lineStartPos, lineEndPos;
 
     for (int i = 0; i < 26; i++) {
         pthread_mutex_lock(&revealMutex);
@@ -193,7 +193,7 @@ void *playerTwo() {
             fPtr2 = fopen("playerTwoHand.txt", "r+");
             char ownHand[100];
             char savedHand[100];
-            fsetpos(fPtr2, &filePos);
+            fsetpos(fPtr2, &lineStartPos);
             fgets(ownHand, 100, fPtr2);
             strcpy(savedHand, ownHand);
 
@@ -210,11 +210,21 @@ void *playerTwo() {
             }
 
             if (looseCard) {
-                printf("ROUND %d THIS FUCKING THING IS %s\n", i + 1, savedHand);
-                fsetpos(fPtr2, &filePos);
+                char hand[50];
+                strcpy(hand, savedHand);
+                strcpy(hand, strtok(savedHand, "\n"));
+                strcat(hand, " - GAINED FROM OPPONENT");
+                fprintf(fPtr1, "\n%s", hand);
+
+                fsetpos(fPtr2, &lineEndPos);
+                char filesave[50];
+                fgets(filesave, 50, fPtr2);
+
+                fsetpos(fPtr2, &lineStartPos);
                 strcpy(savedHand, strtok(savedHand, "\n"));
                 strcat(savedHand, " - LOST TO OPPONENT");
                 fprintf(fPtr2, "%s\n", savedHand);
+                fprintf(fPtr2, "%s", filesave);
             }
 
             fclose(fPtr1);
@@ -230,8 +240,9 @@ void *playerTwo() {
             fflush(stdout);
             exit(-1);
         }
-        fgetpos(fPtr2, &filePos);
+        fgetpos(fPtr2, &lineStartPos);
         fprintf(fPtr2, "%d. %s\n", i + 1, secondHalf[i]);
+        fgetpos(fPtr2, &lineEndPos);
         fclose(fPtr2);
 
         printf("[PLAYER_TWO] Signaling (unblocking) player one\n");
